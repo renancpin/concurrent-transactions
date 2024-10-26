@@ -1,10 +1,4 @@
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsNumberString,
-  IsOptional,
-  Min,
-} from 'class-validator';
+import { IsNumber, IsOptional, Min } from 'class-validator';
 
 export class CreateAccountDto {
   @Min(1)
@@ -13,7 +7,7 @@ export class CreateAccountDto {
   numero: number;
 
   @Min(0)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsOptional()
   saldo: number;
 }
