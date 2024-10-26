@@ -34,7 +34,9 @@ export class AccountsService {
 
   async findAll(): Promise<Account[]> {
     try {
-      const result = await this.prisma.accounts.findMany();
+      const result = await this.prisma.accounts.findMany({
+        orderBy: { numero: 'asc' },
+      });
 
       const accounts = result.map((account) => new Account(account));
 

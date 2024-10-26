@@ -18,3 +18,18 @@ model Accounts {
   saldo   Decimal  @default(0)
   carimbo DateTime @updatedAt
 }
+
+model Transactions {
+  id      Int             @id @default(autoincrement())
+  tipo    TransactionType
+  origem  Int
+  destino Int?
+  valor   Decimal
+  carimbo DateTime        @default(now())
+}
+
+enum TransactionType {
+  deposito
+  saque
+  transferencia
+}

@@ -1,7 +1,12 @@
 import { Prisma } from '@prisma/client';
 
+export type AccountInput = Pick<
+  Prisma.AccountsGetPayload<null>,
+  'numero' | 'saldo'
+>;
+
 export class Account {
-  constructor(data: Prisma.AccountsGetPayload<null>) {
+  constructor(data: AccountInput) {
     this.numero = data.numero;
     this.saldo = data.saldo.toNumber();
   }
