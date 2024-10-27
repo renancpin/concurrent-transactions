@@ -9,6 +9,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { Transaction } from './entities/transaction.entity';
 import { TransactionTypes } from './enums/transaction-types.enum';
+import { QueryTransactionsDto } from './dto/query-transactions.dto';
+import { PaginatedResponse } from 'src/shared/interfaces/paginated-response.interface';
 
 @Injectable()
 export class TransactionsService {
@@ -102,23 +104,68 @@ export class TransactionsService {
     }
   }
 
-  async findAll() {
+  async findAll(
+    query: QueryTransactionsDto,
+  ): Promise<PaginatedResponse<Transaction>> {
+    const {
+      pagina = 1,
+      resultados = 100,
+      dataFinal,
+      dataInicial,
+      tipo,
+      origem,
+      destino,
+    } = query;
+
+    const whereClause: Prisma.TransactionsWhereInput = {
+      tipo: { in: tipo },
+      origem,
+      destino,
+      carimbo: {
+        gte: dataInicial,
+        lte: dataFinal,
+      },
+    };
+
     try {
-      const take = 10;
-      const result = await this.prisma.transactions.findMany({
-        take,
-        orderBy: { carimbo: 'desc' },
-      });
+      const [transactionResults, totalTransactions] =
+        await this.prisma.$transaction([
+          this.prisma.transactions.findMany({
+            where: whereClause,
+            orderBy: { carimbo: 'desc' },
+            skip: (pagina - 1) * resultados,
+            take: resultados,
+          }),
+          this.prisma.transactions.count({
+            where: whereClause,
+          }),
+        ]);
 
-      const transactions = result.map((account) => new Transaction(account));
+      const transactions = transactionResults.map(
+        (account) => new Transaction(account),
+      );
 
-      this.logger.log(`Últimas ${take} transações: ${transactions}`);
+      const response: PaginatedResponse<Transaction> = {
+        dados: transactions,
+        paginaAtual: pagina,
+        totalDePaginas: Math.ceil(totalTransactions / resultados),
+        resultadosPorPagina: resultados,
+        totalDeResultados: totalTransactions,
+      };
 
-      return transactions;
+      return response;
     } catch (error) {
       this.logger.error(error);
 
-      return [] as Transaction[];
+      const response: PaginatedResponse<Transaction> = {
+        dados: [],
+        paginaAtual: pagina,
+        totalDePaginas: 1,
+        resultadosPorPagina: resultados,
+        totalDeResultados: 0,
+      };
+
+      return response;
     }
   }
 

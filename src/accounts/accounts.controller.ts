@@ -8,9 +8,11 @@ import {
   Delete,
   InternalServerErrorException,
   NotFoundException,
+  Query,
 } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
+import { QueryAccountsDto } from './dto/query-accounts.dtos';
 
 @Controller('accounts')
 export class AccountsController {
@@ -28,8 +30,8 @@ export class AccountsController {
   }
 
   @Get()
-  findAll() {
-    return this.accountsService.findAll();
+  findAll(@Query() queryAccountsDto: QueryAccountsDto) {
+    return this.accountsService.findAll(queryAccountsDto);
   }
 
   @Get(':id')

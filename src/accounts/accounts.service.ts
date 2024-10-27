@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { Account } from './entities/account.entity';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { QueryAccountsDto } from './dto/query-accounts.dtos';
+import { PaginatedResponse } from 'src/shared/interfaces/paginated-response.interface';
 
 @Injectable()
 export class AccountsService {
@@ -32,21 +34,42 @@ export class AccountsService {
     }
   }
 
-  async findAll(): Promise<Account[]> {
+  async findAll(query: QueryAccountsDto): Promise<PaginatedResponse<Account>> {
+    const { pagina = 1, resultados = 30 } = query;
+
     try {
-      const result = await this.prisma.accounts.findMany({
-        orderBy: { numero: 'asc' },
-      });
+      const [accountResults, totalAccounts] = await this.prisma.$transaction([
+        this.prisma.accounts.findMany({
+          orderBy: { numero: 'asc' },
+          skip: (pagina - 1) * resultados,
+          take: resultados,
+        }),
+        this.prisma.accounts.count(),
+      ]);
 
-      const accounts = result.map((account) => new Account(account));
+      const accounts = accountResults.map((account) => new Account(account));
 
-      this.logger.log(`Found Accounts: ${accounts}`);
+      const response: PaginatedResponse<Account> = {
+        dados: accounts,
+        paginaAtual: pagina,
+        totalDePaginas: Math.ceil(totalAccounts / resultados),
+        resultadosPorPagina: resultados,
+        totalDeResultados: totalAccounts,
+      };
 
-      return accounts;
+      return response;
     } catch (error) {
       this.logger.error(error);
 
-      return [] as Account[];
+      const response: PaginatedResponse<Account> = {
+        dados: [],
+        paginaAtual: pagina,
+        totalDePaginas: 1,
+        resultadosPorPagina: resultados,
+        totalDeResultados: 0,
+      };
+
+      return response;
     }
   }
 
