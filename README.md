@@ -1,99 +1,102 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Concurrent Transactions
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A simple account transfer Application to showcase concurrent transactions in a high-availability system
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Summary
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- [Project setup](#project-setup)
+  1. [Setting up Environment Variables](#1-setting-up-environment-variables)
+  2. [Installing dependencies](#2-installing-dependencies)
+  3. [Setting up the database](#3-setting-up-the-database)
+  4. [Running the project](#4-running-the-project)
+- [Using the project](#using-the-project)
+- [Running tests](#running-tests)
 
 ## Project setup
 
-```bash
-$ npm install
+### 1. Setting up Environment Variables
+
+Before running this project for the first time, you'll need a **PostgreSQL** instance with an empty database up and running
+
+To configure the project to use this instance, you can create a copy of the [**.env.example**](/.env.example) file and name it **.env**
+
+Inside that file, there's a single environment variable called DATABASE_URL. Replace its value with the credentials of your own database:
+
+```shell
+# .env
+DATABASE_URL="postgresql://user:password@localhost:5432/testdatabase"
 ```
 
-## Compile and run the project
+Don't worry, _this **.env** file will not be included when commiting changes with git_
+
+### 2. Installing dependencies
+
+Run one of the following commands on the shell at the root folder of this project:
 
 ```bash
-# development
+# Installing all dependencies
+$ npm install
+# or
+$ npm i
+
+# Production installation
+# (smaller, does not affect package-lock.json)
+$ npm ci
+```
+
+### 3. Setting up the database
+
+There are a few predefined scripts to help configure your database, run or resetting migrations as well as generating a new migration and schema while in development
+
+```bash
+# Runs all migrations
+$ npm run migration:run
+
+# Drops entire database and reapplies all migrations
+$ npm run migration:reset:dev
+
+# Creates a new migration. Replace <migration_name> with the preferred name
+$ npm run migration:create <migration_name>
+```
+
+### 4. Running the project
+
+After setting everything up, simply run `npm run start` to boot up the project in development mode. Or use one of the boot options:
+
+```bash
+# development mode
 $ npm run start
 
-# watch mode
+# development with watch mode (updates when code changes are saved)
 $ npm run start:dev
 
 # production mode
 $ npm run start:prod
 ```
 
-## Run tests
+## Using the project
+
+The available routes and functions are as follows:
+
+| Method | Route              | Description                                      |
+| ------ | ------------------ | ------------------------------------------------ |
+| POST   | `/contas`          | Create new Account                               |
+| GET    | `/contas`          | List Accounts                                    |
+| GET    | `/contas/{numero}` | Find Account                                     |
+| DELETE | `/contas/{numero}` | Delete Account (mostly for development purposes) |
+| POST   | `/transacoes`      | Make a Transaction                               |
+| GET    | `/transacoes`      | List Transactions                                |
+| GET    | `/transacoes/{id}` | Find Transaction                                 |
+
+## Running tests
 
 ```bash
 # unit tests
 $ npm run test
 
-# e2e tests
+# end-to-end tests
 $ npm run test:e2e
 
 # test coverage
 $ npm run test:cov
 ```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
