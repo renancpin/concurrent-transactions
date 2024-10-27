@@ -7,12 +7,13 @@ import {
   Param,
   Delete,
   Query,
+  NotFoundException,
 } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { QueryTransactionsDto } from './dto/query-transactions.dto';
 
-@Controller('transactions')
+@Controller('transacoes')
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
@@ -28,11 +29,12 @@ export class TransactionsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.transactionsService.findOne(+id);
-  }
+    return this.transactionsService.findOne(+id).then((transaction) => {
+      if (!transaction) {
+        throw new NotFoundException('Transação não encontrada');
+      }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.transactionsService.remove(+id);
+      return transaction;
+    });
   }
 }

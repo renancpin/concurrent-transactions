@@ -3,11 +3,12 @@ import { TransactionTypes } from '../enums/transaction-types.enum';
 
 export type TransactionInput = Pick<
   Prisma.TransactionsGetPayload<null>,
-  'origem' | 'destino' | 'tipo' | 'carimbo'
+  'id' | 'origem' | 'destino' | 'tipo' | 'carimbo'
 > & { valor: Prisma.Decimal | number };
 
 export class Transaction {
   constructor(data: TransactionInput) {
+    this.id = data.id;
     this.tipo = data.tipo as TransactionTypes;
     this.origem = data.origem;
     this.destino = data.destino ?? undefined;
@@ -15,6 +16,7 @@ export class Transaction {
     this.carimbo = new Date(data.carimbo);
   }
 
+  id: number;
   tipo: TransactionTypes;
   origem: number;
   destino?: number;

@@ -24,11 +24,11 @@ export class AccountsService {
 
       const account = new Account(result);
 
-      this.logger.log(`Created Account: ${account}`);
+      this.logger.log(`Conta criada: ${account}`);
 
       return account;
     } catch (error) {
-      this.logger.error(`Could Not Create Account ${numero}`);
+      this.logger.error(`Não foi possível criar conta: ${numero}`);
 
       return null;
     }
@@ -81,11 +81,11 @@ export class AccountsService {
 
       const account = new Account(result);
 
-      this.logger.log(`Found Account: ${account}`);
+      this.logger.log(`Conta encontrada: ${account}`);
 
       return account;
     } catch (error) {
-      this.logger.error(`Could Not Find Account ${numero}`);
+      this.logger.error(`Conta: ${numero} não encontrada`);
 
       return null;
     }
@@ -103,11 +103,11 @@ export class AccountsService {
 
       const account = new Account(result);
 
-      this.logger.log(`Deleted Account: ${account}`);
+      this.logger.log(`Conta removida: ${account}`);
 
       return account;
     } catch (error) {
-      this.logger.error(`Could Not Delete Account ${numero}`);
+      this.logger.error(`Não foi possível remover conta: ${numero}`);
 
       return null;
     }
