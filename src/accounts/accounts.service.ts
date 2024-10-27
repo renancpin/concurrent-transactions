@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { Account } from './entities/account.entity';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { QueryAccountsDto } from './dto/query-accounts.dtos';
+import { PaginatedResponse } from 'src/shared/interfaces/paginated-response.interface';
 
 @Injectable()
 export class AccountsService {
@@ -22,31 +24,52 @@ export class AccountsService {
 
       const account = new Account(result);
 
-      this.logger.log(`Created Account: ${account}`);
+      this.logger.log(`Conta criada: ${account}`);
 
       return account;
     } catch (error) {
-      this.logger.error(`Could Not Create Account ${numero}`);
+      this.logger.error(`Não foi possível criar conta: ${numero}`);
 
       return null;
     }
   }
 
-  async findAll(): Promise<Account[]> {
+  async findAll(query: QueryAccountsDto): Promise<PaginatedResponse<Account>> {
+    const { pagina = 1, resultados = 30 } = query;
+
     try {
-      const result = await this.prisma.accounts.findMany({
-        orderBy: { numero: 'asc' },
-      });
+      const [accountResults, totalAccounts] = await this.prisma.$transaction([
+        this.prisma.accounts.findMany({
+          orderBy: { numero: 'asc' },
+          skip: (pagina - 1) * resultados,
+          take: resultados,
+        }),
+        this.prisma.accounts.count(),
+      ]);
 
-      const accounts = result.map((account) => new Account(account));
+      const accounts = accountResults.map((account) => new Account(account));
 
-      this.logger.log(`Found Accounts: ${accounts}`);
+      const response: PaginatedResponse<Account> = {
+        dados: accounts,
+        paginaAtual: pagina,
+        totalDePaginas: Math.ceil(totalAccounts / resultados),
+        resultadosPorPagina: resultados,
+        totalDeResultados: totalAccounts,
+      };
 
-      return accounts;
+      return response;
     } catch (error) {
       this.logger.error(error);
 
-      return [] as Account[];
+      const response: PaginatedResponse<Account> = {
+        dados: [],
+        paginaAtual: pagina,
+        totalDePaginas: 1,
+        resultadosPorPagina: resultados,
+        totalDeResultados: 0,
+      };
+
+      return response;
     }
   }
 
@@ -58,11 +81,11 @@ export class AccountsService {
 
       const account = new Account(result);
 
-      this.logger.log(`Found Account: ${account}`);
+      this.logger.log(`Conta encontrada: ${account}`);
 
       return account;
     } catch (error) {
-      this.logger.error(`Could Not Find Account ${numero}`);
+      this.logger.error(`Conta: ${numero} não encontrada`);
 
       return null;
     }
@@ -80,11 +103,11 @@ export class AccountsService {
 
       const account = new Account(result);
 
-      this.logger.log(`Deleted Account: ${account}`);
+      this.logger.log(`Conta removida: ${account}`);
 
       return account;
     } catch (error) {
-      this.logger.error(`Could Not Delete Account ${numero}`);
+      this.logger.error(`Não foi possível remover conta: ${numero}`);
 
       return null;
     }

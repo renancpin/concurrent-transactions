@@ -8,11 +8,13 @@ import {
   Delete,
   InternalServerErrorException,
   NotFoundException,
+  Query,
 } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
+import { QueryAccountsDto } from './dto/query-accounts.dtos';
 
-@Controller('accounts')
+@Controller('contas')
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
 
@@ -20,7 +22,7 @@ export class AccountsController {
   create(@Body() createAccountDto: CreateAccountDto) {
     return this.accountsService.create(createAccountDto).then((account) => {
       if (!account) {
-        throw new InternalServerErrorException('Could Not Create Account');
+        throw new InternalServerErrorException('Não foi possível criar conta');
       }
 
       return account;
@@ -28,15 +30,15 @@ export class AccountsController {
   }
 
   @Get()
-  findAll() {
-    return this.accountsService.findAll();
+  findAll(@Query() queryAccountsDto: QueryAccountsDto) {
+    return this.accountsService.findAll(queryAccountsDto);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.accountsService.findOne(+id).then((account) => {
       if (!account) {
-        throw new NotFoundException('Account Not Found');
+        throw new NotFoundException('Conta não encontrada');
       }
 
       return account;
@@ -47,7 +49,7 @@ export class AccountsController {
   remove(@Param('id') id: string) {
     return this.accountsService.remove(+id).then((account) => {
       if (!account) {
-        throw new NotFoundException('Account Not Found');
+        throw new NotFoundException('Conta não encontrada');
       }
 
       return account;

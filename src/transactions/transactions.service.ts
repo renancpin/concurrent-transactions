@@ -9,6 +9,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { Transaction } from './entities/transaction.entity';
 import { TransactionTypes } from './enums/transaction-types.enum';
+import { QueryTransactionsDto } from './dto/query-transactions.dto';
+import { PaginatedResponse } from 'src/shared/interfaces/paginated-response.interface';
 
 @Injectable()
 export class TransactionsService {
@@ -17,76 +19,75 @@ export class TransactionsService {
   private logger: Logger = new Logger('Transactions');
 
   async create(createTransactionDto: CreateTransactionDto) {
-    this.logger.log(`Transação: ${createTransactionDto}`);
+    this.logger.log(`Transação: ${JSON.stringify(createTransactionDto)}`);
 
     const { origem, destino, tipo, valor } = createTransactionDto;
 
     try {
-      const operation = await this.prisma.$transaction(async (prisma) => {
-        const originAccount = await prisma.accounts.findFirst({
-          where: { numero: origem },
-        });
+      const operation = await this.prisma.$transaction(
+        async (prisma) => {
+          const operation =
+            tipo === TransactionTypes.DEPOSITO ? 'increment' : 'decrement';
 
-        if (
-          tipo !== TransactionTypes.DEPOSITO &&
-          originAccount.saldo.toNumber() < valor
-        ) {
-          throw new Error(
-            `Conta de origem ${origem} não possui saldo suficiente`,
-          );
-        }
-
-        const operation =
-          tipo === TransactionTypes.DEPOSITO ? 'increment' : 'decrement';
-
-        const updates = [
-          prisma.accounts.update({
-            where: { numero: origem },
-            data: { saldo: { [operation]: valor } },
-          }),
-        ];
-
-        if (
-          tipo === TransactionTypes.TRANSFERENCIA &&
-          typeof destino === 'number' &&
-          destino > 0
-        ) {
-          updates.push(
+          const updates = [
             prisma.accounts.update({
-              where: { numero: destino },
-              data: { saldo: { increment: valor } },
+              where: { numero: origem },
+              data: { saldo: { [operation]: valor } },
             }),
-          );
-        }
+          ];
 
-        try {
-          const results = await Promise.all(updates);
-
-          const newTransaction = await prisma.transactions.create({
-            data: { origem, destino, tipo, valor },
-          });
-
-          return {
-            origem: results[0],
-            destino: results[1],
-            transacao: newTransaction,
-          };
-        } catch (error) {
           if (
-            error instanceof Prisma.PrismaClientKnownRequestError &&
-            error.code === 'P2034'
+            tipo === TransactionTypes.TRANSFERENCIA &&
+            typeof destino === 'number' &&
+            destino > 0
           ) {
-            throw new Error(
-              'Não foi possível completar a transação. Tente novamente.',
+            updates.push(
+              prisma.accounts.update({
+                where: { numero: destino },
+                data: { saldo: { increment: valor } },
+              }),
             );
           }
-        }
-      });
+
+          try {
+            const results = await Promise.all(updates);
+
+            if (results[0].saldo.toNumber() < 0) {
+              throw new Error(
+                `Conta de origem ${origem} não possui saldo suficiente`,
+              );
+            }
+
+            const newTransaction = await prisma.transactions.create({
+              data: { origem, destino, tipo, valor },
+            });
+
+            return {
+              origem: results[0],
+              destino: results[1],
+              transacao: newTransaction,
+            };
+          } catch (error) {
+            if (
+              error instanceof Prisma.PrismaClientKnownRequestError &&
+              error.code === 'P2034'
+            ) {
+              throw new Error(
+                'Não foi possível completar a transação. Tente novamente.',
+              );
+            }
+
+            throw error;
+          }
+        },
+        { isolationLevel: 'Serializable' },
+      );
 
       const transaction = new Transaction(operation.transacao);
-      this.logger.log(`Transacação bem sucedida: ${transaction}`);
-      this.logger.log(operation.origem);
-      if (operation.destino) this.logger.log(operation.destino);
+      this.logger.log(`Transação bem sucedida: ${transaction}`);
+      this.logger.log(`Saldo da origem: ${operation.origem.saldo}`);
+      if (operation.destino)
+        this.logger.log(`Saldo do destino: ${operation.destino.saldo}`);
 
       return transaction;
     } catch (error) {
@@ -102,31 +103,86 @@ export class TransactionsService {
     }
   }
 
-  async findAll() {
+  async findAll(
+    query: QueryTransactionsDto,
+  ): Promise<PaginatedResponse<Transaction>> {
+    const {
+      pagina = 1,
+      resultados = 100,
+      dataFinal,
+      dataInicial,
+      tipo,
+      origem,
+      destino,
+    } = query;
+
+    const whereClause: Prisma.TransactionsWhereInput = {
+      tipo: { in: tipo },
+      origem,
+      destino,
+      carimbo: {
+        gte: dataInicial,
+        lte: dataFinal,
+      },
+    };
+
     try {
-      const take = 10;
-      const result = await this.prisma.transactions.findMany({
-        take,
-        orderBy: { carimbo: 'desc' },
-      });
+      const [transactionResults, totalTransactions] =
+        await this.prisma.$transaction([
+          this.prisma.transactions.findMany({
+            where: whereClause,
+            orderBy: { carimbo: 'desc' },
+            skip: (pagina - 1) * resultados,
+            take: resultados,
+          }),
+          this.prisma.transactions.count({
+            where: whereClause,
+          }),
+        ]);
 
-      const transactions = result.map((account) => new Transaction(account));
+      const transactions = transactionResults.map(
+        (account) => new Transaction(account),
+      );
 
-      this.logger.log(`Últimas ${take} transações: ${transactions}`);
+      const response: PaginatedResponse<Transaction> = {
+        dados: transactions,
+        paginaAtual: pagina,
+        totalDePaginas: Math.ceil(totalTransactions / resultados),
+        resultadosPorPagina: resultados,
+        totalDeResultados: totalTransactions,
+      };
 
-      return transactions;
+      return response;
     } catch (error) {
       this.logger.error(error);
 
-      return [] as Transaction[];
+      const response: PaginatedResponse<Transaction> = {
+        dados: [],
+        paginaAtual: pagina,
+        totalDePaginas: 1,
+        resultadosPorPagina: resultados,
+        totalDeResultados: 0,
+      };
+
+      return response;
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} transaction`;
-  }
+  async findOne(id: number) {
+    try {
+      const result = await this.prisma.transactions.findUnique({
+        where: { id },
+      });
 
-  remove(id: number) {
-    return `This action removes a #${id} transaction`;
+      const account = new Transaction(result);
+
+      this.logger.log(`Transação encontrada: ${account}`);
+
+      return account;
+    } catch (error) {
+      this.logger.error(`Transação: ${id} não encontrada`);
+
+      return null;
+    }
   }
 }
