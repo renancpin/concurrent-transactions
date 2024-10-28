@@ -90,13 +90,17 @@ As rotas e funções disponíveis são, a seguir:
 
 ## Executando testes
 
-```bash
-# testes unitários
-$ npm run test
+Existem alguns casos de testes incluídos em [**app.e2e-spec.ts**](/test/app.e2e-spec.ts)
 
+Se você possui o [**Docker**](https://www.docker.com/) instalado em sua máquina, pode fazer uso de [TestContainers](https://testcontainers.com/getting-started/) para criar uma instância temporária de banco de dados automaticamente
+
+Se você não possui o **Docker**, precisará de uma instância de banco de dados vazia. Por segurança, a variável de ambiente utilizada será diferente. No arquivo **.env**, informe a variável **TEST_DATABASE_URL**
+
+> ⚠️ **AVISO**: O banco de dados de teste está sujeito a **perda de dados**. Não utilize um banco de dados de produção
+
+Com tudo configurado, execute:
+
+```bash
 # testes end-to-end
 $ npm run test:e2e
-
-# testes com cobertura
-$ npm run test:cov
 ```
