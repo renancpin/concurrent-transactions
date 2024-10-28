@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { Account } from './entities/account.entity';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { QueryAccountsDto } from './dto/query-accounts.dtos';
-import { PaginatedResponse } from 'src/shared/interfaces/paginated-response.interface';
+import { PaginatedResponse } from '../shared/interfaces/paginated-response.interface';
 
 @Injectable()
 export class AccountsService {

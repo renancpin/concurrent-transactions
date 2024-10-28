@@ -5,18 +5,18 @@ import {
   Logger,
 } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { Transaction } from './entities/transaction.entity';
 import { TransactionTypes } from './enums/transaction-types.enum';
 import { QueryTransactionsDto } from './dto/query-transactions.dto';
-import { PaginatedResponse } from 'src/shared/interfaces/paginated-response.interface';
+import { PaginatedResponse } from '../shared/interfaces/paginated-response.interface';
 
 @Injectable()
 export class TransactionsService {
   constructor(private prisma: PrismaService) {}
 
-  private logger: Logger = new Logger('Transactions');
+  private logger: Logger = new Logger('TransactionsService');
 
   async create(createTransactionDto: CreateTransactionDto) {
     this.logger.log(`Transação: ${JSON.stringify(createTransactionDto)}`);
