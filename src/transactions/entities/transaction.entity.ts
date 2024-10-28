@@ -10,15 +10,20 @@ export class Transaction {
   constructor(data: TransactionInput) {
     this.id = data.id;
     this.tipo = data.tipo as TransactionTypes;
-    this.origem = data.origem;
-    this.destino = data.destino ?? undefined;
+    if (data.tipo === TransactionTypes.TRANSFERENCIA) {
+      this.origem = data.origem;
+      this.destino = data.destino;
+    } else {
+      this.conta = data.origem;
+    }
     this.valor = Number(data.valor);
     this.carimbo = new Date(data.carimbo);
   }
 
   id: number;
   tipo: TransactionTypes;
-  origem: number;
+  conta?: number;
+  origem?: number;
   destino?: number;
   valor: number;
   carimbo: Date;
@@ -29,7 +34,7 @@ export class Transaction {
     if (this.tipo === TransactionTypes.TRANSFERENCIA) {
       message += ` da conta ${this.origem} para a conta ${this.destino}`;
     } else {
-      message += ` na conta ${this.origem}`;
+      message += ` na conta ${this.conta}`;
     }
 
     return message;

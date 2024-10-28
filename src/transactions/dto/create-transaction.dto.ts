@@ -1,19 +1,25 @@
-import { TransactionType } from '@prisma/client';
 import { IsEnum, IsNotEmpty, IsNumber, ValidateIf } from 'class-validator';
+import { TransactionTypes } from '../enums/transaction-types.enum';
 
 export class CreateTransactionDto {
-  @IsEnum(TransactionType)
+  @IsEnum(TransactionTypes)
   @IsNotEmpty()
-  tipo: TransactionType;
+  tipo: TransactionTypes;
 
   @IsNumber()
   @IsNotEmpty()
-  origem: number;
+  @ValidateIf((o) => o.tipo === TransactionTypes.TRANSFERENCIA)
+  origem?: number;
 
-  @ValidateIf((o) => o.tipo === TransactionType.transferencia)
   @IsNumber()
   @IsNotEmpty()
+  @ValidateIf((o) => o.tipo === TransactionTypes.TRANSFERENCIA)
   destino?: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @ValidateIf((o) => o.tipo !== TransactionTypes.TRANSFERENCIA)
+  conta?: number;
 
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsNotEmpty()

@@ -21,45 +21,57 @@ export class TransactionsService {
   async create(createTransactionDto: CreateTransactionDto) {
     this.logger.log(`Transação: ${JSON.stringify(createTransactionDto)}`);
 
-    const { origem, destino, tipo, valor } = createTransactionDto;
+    const { origem, destino, conta, tipo, valor } = createTransactionDto;
 
     try {
       const operation = await this.prisma.$transaction(
         async (prisma) => {
-          const operation =
-            tipo === TransactionTypes.DEPOSITO ? 'increment' : 'decrement';
+          const updates: Prisma.AccountsUpdateArgs[] = [];
 
-          const updates = [
-            prisma.accounts.update({
-              where: { numero: origem },
-              data: { saldo: { [operation]: valor } },
-            }),
-          ];
-
-          if (
-            tipo === TransactionTypes.TRANSFERENCIA &&
-            typeof destino === 'number' &&
-            destino > 0
-          ) {
+          if (tipo === TransactionTypes.TRANSFERENCIA) {
             updates.push(
-              prisma.accounts.update({
+              {
+                where: { numero: origem },
+                data: { saldo: { decrement: valor } },
+              },
+              {
                 where: { numero: destino },
                 data: { saldo: { increment: valor } },
-              }),
+              },
             );
+          } else {
+            updates.push({
+              where: { numero: conta },
+              data: {
+                saldo:
+                  tipo === TransactionTypes.DEPOSITO
+                    ? { increment: valor }
+                    : { decrement: valor },
+              },
+            });
           }
 
           try {
-            const results = await Promise.all(updates);
+            const results = await Promise.all(
+              updates.map((updatePayload) =>
+                prisma.accounts.update(updatePayload),
+              ),
+            );
 
             if (results[0].saldo.toNumber() < 0) {
               throw new Error(
-                `Conta de origem ${origem} não possui saldo suficiente`,
+                `Conta ${results[0].numero} não possui saldo suficiente`,
               );
             }
 
             const newTransaction = await prisma.transactions.create({
-              data: { origem, destino, tipo, valor },
+              data: {
+                origem:
+                  createTransactionDto.origem ?? createTransactionDto.conta,
+                destino: createTransactionDto.destino,
+                tipo,
+                valor,
+              },
             });
 
             return {
@@ -84,10 +96,14 @@ export class TransactionsService {
       );
 
       const transaction = new Transaction(operation.transacao);
+
       this.logger.log(`Transação bem sucedida: ${transaction}`);
-      this.logger.log(`Saldo da origem: ${operation.origem.saldo}`);
-      if (operation.destino)
+      if (transaction.tipo === TransactionTypes.TRANSFERENCIA) {
+        this.logger.log(`Saldo da origem: ${operation.origem.saldo}`);
         this.logger.log(`Saldo do destino: ${operation.destino.saldo}`);
+      } else {
+        this.logger.log(`Saldo da conta: ${operation.origem.saldo}`);
+      }
 
       return transaction;
     } catch (error) {
