@@ -90,13 +90,17 @@ The available routes and functions are as follows:
 
 ## Running tests
 
-```bash
-# unit tests
-$ npm run test
+There are some test cases included at [**app.e2e-spec.ts**](/test/app.e2e-spec.ts)
 
+If you have [**Docker**](https://www.docker.com/) installed on your machine, you can leverage [TestContainers](https://testcontainers.com/getting-started/) to spin up a temporary database instance automatically
+
+If you don't have **Docker**, you'll need an empty database instance. For security, the environment variable used will be different. In the **.env** file, provide the **TEST_DATABASE_URL**
+
+> ⚠️ **WARNING**: The test database will be subject to data loss. Do not provide a production database
+
+With everything set, run:
+
+```bash
 # end-to-end tests
 $ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
 ```

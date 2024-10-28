@@ -1,8 +1,8 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsOptional } from 'class-validator';
-import { QueryBaseDto } from 'src/shared/dtos/query-base.dto';
 import { TransactionTypes } from '../enums/transaction-types.enum';
-import { ParseArray } from 'src/shared/decorators/parse-array.decorator';
+import { QueryBaseDto } from '../../shared/dtos/query-base.dto';
+import { ParseArray } from '../../shared/decorators/parse-array.decorator';
 
 export class QueryTransactionsDto extends QueryBaseDto {
   @IsEnum(TransactionTypes, { each: true })
