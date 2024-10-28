@@ -1,11 +1,5 @@
 import { TransactionType } from '@prisma/client';
-import {
-  IsDecimal,
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  ValidateIf,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, ValidateIf } from 'class-validator';
 
 export class CreateTransactionDto {
   @IsEnum(TransactionType)

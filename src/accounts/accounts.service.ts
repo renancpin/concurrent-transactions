@@ -28,6 +28,7 @@ export class AccountsService {
 
       return account;
     } catch (error) {
+      this.logger.error(error);
       this.logger.error(`Não foi possível criar conta: ${numero}`);
 
       return null;
@@ -85,6 +86,7 @@ export class AccountsService {
 
       return account;
     } catch (error) {
+      this.logger.error(error);
       this.logger.error(`Conta: ${numero} não encontrada`);
 
       return null;
@@ -107,6 +109,7 @@ export class AccountsService {
 
       return account;
     } catch (error) {
+      this.logger.error(error);
       this.logger.error(`Não foi possível remover conta: ${numero}`);
 
       return null;

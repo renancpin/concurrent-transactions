@@ -180,6 +180,7 @@ export class TransactionsService {
 
       return account;
     } catch (error) {
+      this.logger.error(error);
       this.logger.error(`Transação: ${id} não encontrada`);
 
       return null;
