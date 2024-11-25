@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -26,10 +21,10 @@ export class TransactionsService {
     try {
       const operation = await this.prisma.$transaction(
         async (prisma) => {
-          const updates: Prisma.AccountsUpdateArgs[] = [];
+          const updatesInput: Prisma.AccountsUpdateArgs[] = [];
 
           if (tipo === TransactionTypes.TRANSFERENCIA) {
-            updates.push(
+            updatesInput.push(
               {
                 where: { numero: origem },
                 data: { saldo: { decrement: valor } },
@@ -40,7 +35,7 @@ export class TransactionsService {
               },
             );
           } else {
-            updates.push({
+            updatesInput.push({
               where: { numero: conta },
               data: {
                 saldo:
@@ -51,46 +46,35 @@ export class TransactionsService {
             });
           }
 
-          try {
-            const results = await Promise.all(
-              updates.map((updatePayload) =>
-                prisma.accounts.update(updatePayload),
-              ),
-            );
+          const updates = updatesInput.map((updatePayload) =>
+            prisma.accounts.update(updatePayload),
+          );
+          const results = await Promise.allSettled(updates);
+          const [resultOrigem, resultDestino] = results;
 
-            if (results[0].saldo.toNumber() < 0) {
-              throw new Error(
-                `Conta ${results[0].numero} não possui saldo suficiente`,
-              );
-            }
+          if (resultOrigem.status === 'rejected')
+            throw new Error('Conta de origem não encontrada');
 
-            const newTransaction = await prisma.transactions.create({
-              data: {
-                origem:
-                  createTransactionDto.origem ?? createTransactionDto.conta,
-                destino: createTransactionDto.destino,
-                tipo,
-                valor,
-              },
-            });
+          if (resultOrigem.value.saldo.toNumber() < 0)
+            throw new Error('Conta de origem não possui saldo suficiente');
 
-            return {
-              origem: results[0],
-              destino: results[1],
-              transacao: newTransaction,
-            };
-          } catch (error) {
-            if (
-              error instanceof Prisma.PrismaClientKnownRequestError &&
-              error.code === 'P2034'
-            ) {
-              throw new Error(
-                'Não foi possível completar a transação. Tente novamente.',
-              );
-            }
+          if (resultDestino?.status === 'rejected')
+            throw new Error('Conta de destino não encontrada');
 
-            throw error;
-          }
+          const transactionResponse = await prisma.transactions.create({
+            data: {
+              origem: origem ?? conta,
+              destino: destino,
+              tipo,
+              valor,
+            },
+          });
+
+          return {
+            origem: resultOrigem.value,
+            destino: resultDestino?.value,
+            transacao: transactionResponse,
+          };
         },
         { isolationLevel: 'Serializable' },
       );
@@ -99,10 +83,14 @@ export class TransactionsService {
 
       this.logger.log(`Transação bem sucedida: ${transaction}`);
       if (transaction.tipo === TransactionTypes.TRANSFERENCIA) {
-        this.logger.log(`Saldo da origem: ${operation.origem.saldo}`);
-        this.logger.log(`Saldo do destino: ${operation.destino.saldo}`);
+        this.logger.log(
+          `Saldo da origem (${origem}): ${operation.origem.saldo}`,
+        );
+        this.logger.log(
+          `Saldo do destino (${destino}): ${operation.destino.saldo}`,
+        );
       } else {
-        this.logger.log(`Saldo da conta: ${operation.origem.saldo}`);
+        this.logger.log(`Saldo da conta ${origem}: ${operation.origem.saldo}`);
       }
 
       return transaction;
@@ -111,11 +99,7 @@ export class TransactionsService {
 
       const message: string = error.message;
 
-      if (message.includes('saldo')) {
-        throw new BadRequestException(message);
-      }
-
-      throw new InternalServerErrorException(message);
+      throw new BadRequestException(message);
     }
   }
 
